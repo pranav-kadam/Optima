@@ -1,13 +1,25 @@
+// app.js
 const express = require('express');
 const dotenv = require('dotenv');
-const db = require('./utils/db');
+const accountantRoutes = require('./routes/accountantRoutes');
+const salesmanRoutes = require('./routes/salesmanRoutes');
+const qaRoutes = require('./routes/qaRoutes');
+const hrRoutes = require('./routes/hrRoutes');
+const customerServiceRoutes = require('./routes/customerServiceRoutes');
 
-dotenv.config(); 
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+// Register role-specific routes
+app.use('/api/accountants', accountantRoutes);
+app.use('/api/salesmen', salesmanRoutes);
+app.use('/api/qa', qaRoutes);
+app.use('/api/hr', hrRoutes);
+app.use('/api/customerservice', customerServiceRoutes);
 
 app.get('/', (req, res) => {
   res.send('ERP Backend is running');
