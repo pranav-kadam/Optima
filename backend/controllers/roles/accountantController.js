@@ -3,27 +3,66 @@ const db = require('../../utils/db');
 
 // Fetch invoice details
 const getInvoiceDetails = async (req, res) => {
-  const { invoiceId } = req.params;
+  const { clientName, startDate, endDate } = req.query;
+
+  let query = `
+    SELECT 
+      s.salesid AS invoice_number,
+      s.date AS invoice_date,
+      c.clientid,
+      c.name AS client_name,
+      c.address AS client_address,
+      c.email AS client_email,
+      c.contact AS client_contact,
+      s.salesmanname,
+      s.qty AS quantity,
+      s.amount AS total_amount,
+      st.amount_paid,
+      st.amount_remaining,
+      CASE 
+        WHEN st.amount_remaining = 0 THEN 'Paid'
+        WHEN st.amount_paid = 0 THEN 'Unpaid'
+        ELSE 'Partially Paid'
+      END AS payment_status,
+      c.paymentdetails
+    FROM 
+      sales s
+    JOIN 
+      clients c ON s.clientid = c.clientid
+    JOIN 
+      status st ON s.statusid = st.statusid
+    WHERE 1=1
+  `;
+
+  const queryParams = [];
+
+  if (clientName) {
+    query += ` AND c.name ILIKE $${queryParams.length + 1}`;
+    queryParams.push(`%${clientName}%`);
+  }
+
+  if (startDate) {
+    query += ` AND s.date >= $${queryParams.length + 1}`;
+    queryParams.push(startDate);
+  }
+
+  if (endDate) {
+    query += ` AND s.date <= $${queryParams.length + 1}`;
+    queryParams.push(endDate);
+  }
+
+  query += ' ORDER BY s.date DESC';
+
   try {
-    const result = await db.query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
-    res.status(200).json(result.rows[0]);
+    const result = await db.query(query, queryParams);
+    res.status(200).json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Fetch transaction/order details
-const getOrderDetails = async (req, res) => {
-  const { orderId } = req.params;
-  try {
-    const result = await db.query('SELECT * FROM transactions WHERE order_id = $1', [orderId]);
-    res.status(200).json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
-module.exports = { getInvoiceDetails, getOrderDetails };
+module.exports = { getInvoiceDetails};
 
 // controllers/roles/accountantController.js
 
@@ -61,9 +100,8 @@ const generateBalanceSheet = async (req, res) => {
   
   module.exports = { generateBalanceSheet, generateIncomeStatement, generateCashFlowStatement };
   
-  // controllers/roles/accountantController.js
+// controllers/roles/accountantController.js
 
-// Generate Account Receivables Report
 const generateARReport = async (req, res) => {
     try {
       const result = await db.query(`
