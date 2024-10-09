@@ -63,7 +63,7 @@ const getInvoiceDetails = async (req, res) => {
 
 
 module.exports = { getInvoiceDetails};
-
+/*
 // controllers/roles/accountantController.js
 
 // Generate Balance Sheet
@@ -154,3 +154,4 @@ const generateCustomReport = async (req, res) => {
   
   module.exports = { generateCustomReport };
     
+  */
