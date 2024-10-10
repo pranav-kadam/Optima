@@ -1,12 +1,10 @@
-// controllers/roles/accountantController.js
 const db = require('../../utils/db');
 
-// Fetch invoice details
 const getInvoiceDetails = async (req, res) => {
-  const { clientName, startDate, endDate } = req.query;
+  const { clientName, startDate, endDate, page = 1, pageSize = 20 } = req.query;
 
-  let query = `
-    SELECT 
+  let baseQuery = `
+    SELECT
       s.salesid AS invoice_number,
       s.date AS invoice_date,
       c.clientid,
@@ -19,50 +17,71 @@ const getInvoiceDetails = async (req, res) => {
       s.amount AS total_amount,
       st.amount_paid,
       st.amount_remaining,
-      CASE 
+      CASE
         WHEN st.amount_remaining = 0 THEN 'Paid'
         WHEN st.amount_paid = 0 THEN 'Unpaid'
         ELSE 'Partially Paid'
       END AS payment_status,
       c.paymentdetails
-    FROM 
+    FROM
       sales s
-    JOIN 
+    JOIN
       clients c ON s.clientid = c.clientid
-    JOIN 
+    JOIN
       status st ON s.statusid = st.statusid
     WHERE 1=1
   `;
 
   const queryParams = [];
 
+  // Filtering logic
   if (clientName) {
-    query += ` AND c.name ILIKE $${queryParams.length + 1}`;
+    baseQuery += ` AND c.name ILIKE $${queryParams.length + 1}`;
     queryParams.push(`%${clientName}%`);
   }
 
   if (startDate) {
-    query += ` AND s.date >= $${queryParams.length + 1}`;
+    baseQuery += ` AND s.date >= $${queryParams.length + 1}`;
     queryParams.push(startDate);
   }
 
   if (endDate) {
-    query += ` AND s.date <= $${queryParams.length + 1}`;
+    baseQuery += ` AND s.date <= $${queryParams.length + 1}`;
     queryParams.push(endDate);
   }
 
-  query += ' ORDER BY s.date DESC';
+  // Separate parameters for countQuery
+  const countQuery = `SELECT COUNT(*) FROM (${baseQuery}) AS count_query`;
+  const countParams = [...queryParams];  // copy queryParams
+
+  // Pagination logic (only for main query)
+  baseQuery += ' ORDER BY s.date DESC';
+  const offset = (page - 1) * pageSize;
+  baseQuery += ` LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+  queryParams.push(pageSize, offset);
 
   try {
-    const result = await db.query(query, queryParams);
-    res.status(200).json(result.rows);
+    // Execute count query without LIMIT and OFFSET
+    const countResult = await db.query(countQuery, countParams);
+    const totalCount = parseInt(countResult.rows[0].count);
+
+    // Execute main query with pagination
+    const result = await db.query(baseQuery, queryParams);
+    
+    res.status(200).json({
+      invoices: result.rows,
+      totalCount,
+      page: parseInt(page),
+      pageSize: parseInt(pageSize),
+      totalPages: Math.ceil(totalCount / pageSize),
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'An error occurred while fetching invoice details', details: err.message });
   }
 };
 
-
-module.exports = { getInvoiceDetails};
+module.exports = { getInvoiceDetails };
 /*
 // controllers/roles/accountantController.js
 
