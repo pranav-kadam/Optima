@@ -10,7 +10,7 @@ const LandingPage = () => {
         <h1 className="text-3xl font-bold text-blue-600">Optima ERP</h1>
         <nav>
           <Button className="mr-4">
-            <Link to="/auth">Login</Link>
+            <Link to="/accDash">Login</Link>
           </Button>
           <Button>Get Started</Button>
         </nav>

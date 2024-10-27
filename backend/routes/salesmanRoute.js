@@ -1,10 +1,10 @@
 // routes/accountantRoutes.js
 const express = require('express');
-const accountantController = require('../controllers/roles/accountantController');
+const accountantController = require('../controllers/roles/salesmanController');
 const router = express.Router();
 
 
-router.get('/sales', accountantController.getInvoiceDetails);
+router.get('/invoices', salesmanController.getInvoiceDetails);
 
 /*
 router.get('/order/:orderId', accountantController.getOrderDetails);
